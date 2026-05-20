@@ -1,0 +1,116 @@
+const API_KEY = "f8647a0952d4cd4f0f80147243fa5cf6";
+
+const asins = [
+  "B09VC32SHV",
+  "B0FLWSNCVT",
+  "B0FLWSBL3R",
+  "B0D7W73KZ1",
+  "B0FLWS4MHK",
+  "B0FLWSMT3X",
+  "B09VC46FBL",
+  "B09VC5P41F",
+  "B0FLWRXXRX",
+  "B0CJMVSRVB",
+  "B0G6LX6QC7",
+  "B0D9BT2ZXT",
+  "B0FLWR7N6R",
+  "B0FLWSFMXD",
+  "B0FLWSX4LG",
+  "B0G7ZXHD6C"
+];
+
+const tbody = document.querySelector("#priceTable tbody");
+
+async function fetchPrices() {
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="4">Loading live prices...</td>
+    </tr>
+  `;
+
+  let rows = "";
+
+  for (const asin of asins) {
+
+    try {
+
+      const amazonUrl = `https://www.amazon.in/dp/${asin}`;
+
+      const scraperUrl =
+        `https://api.scraperapi.com/?api_key=${API_KEY}&url=${encodeURIComponent(amazonUrl)}`;
+
+      const response = await fetch(scraperUrl);
+
+      const html = await response.text();
+
+      const parser = new DOMParser();
+
+      const doc = parser.parseFromString(html, "text/html");
+
+      let price =
+        doc.querySelector(".a-price .a-offscreen")?.innerText ||
+        doc.querySelector("#priceblock_ourprice")?.innerText ||
+        doc.querySelector("#priceblock_dealprice")?.innerText ||
+        doc.querySelector(".a-price-whole")?.innerText ||
+        "Not Found";
+
+      let title =
+        doc.querySelector("#productTitle")?.innerText.trim() ||
+        "Product";
+
+      rows += `
+        <tr>
+          <td>${asin}</td>
+
+          <td>
+            ${title}
+          </td>
+
+          <td>
+            ${price}
+          </td>
+
+          <td>
+            ${price !== "Not Found"
+              ? '<span style="color:green;font-weight:bold;">LIVE</span>'
+              : '<span style="color:red;font-weight:bold;">FAILED</span>'
+            }
+          </td>
+
+          <td>
+            <a href="${amazonUrl}" target="_blank">
+              <button class="btn">
+                Open
+              </button>
+            </a>
+          </td>
+        </tr>
+      `;
+
+    } catch (error) {
+
+      rows += `
+        <tr>
+          <td>${asin}</td>
+          <td>-</td>
+          <td>Error</td>
+          <td>
+            <span style="color:red;font-weight:bold;">
+              FAILED
+            </span>
+          </td>
+          <td>-</td>
+        </tr>
+      `;
+
+      console.log(error);
+    }
+  }
+
+  tbody.innerHTML = rows;
+}
+
+fetchPrices();
+
+setInterval(fetchPrices, 300000);
